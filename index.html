@@ -2,69 +2,54 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gato^3</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 20px;
     }
     #bigBoard {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, auto);
       gap: 10px;
-      max-width: 600px;
-      margin: 0 auto 20px;
+      justify-content: center;
+      margin: 20px auto;
     }
     .smallBoard {
-      border: 2px solid black;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 3px;
-      background-color: #eee;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(3, 50px);
+      border: 2px solid black;
       position: relative;
-      transition: all 0.3s ease;
     }
     .cell {
-      background-color: white;
-      border: 1px solid #aaa;
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      user-select: none;
-      height: 50px;
+      border: 1px solid #999;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
     }
-    .smallBoard.won {
-      background-color: #333;
-      position: relative;
+    .won {
+      background-color: #eef;
+      pointer-events: none;
+    }
+    .active {
+      border: 3px solid #007bff;
     }
     .winnerMark {
       position: absolute;
+      font-size: 60px;
+      color: #555;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 4rem;
-      font-weight: bold;
-      color: #ccc; /* Gris claro */
-      pointer-events: none;
-    }
-    .smallBoard.active {
-      outline: 4px solid #999;
-      box-shadow: 0 0 10px 4px rgba(150, 150, 150, 0.6);
-      background-color: #ddd;
-    }
-    #status {
-      font-size: 1.3rem;
-      margin-bottom: 20px;
+      opacity: 0.3;
     }
     button {
-      font-size: 1rem;
-      padding: 8px 15px;
-      cursor: pointer;
+      margin-top: 10px;
+      padding: 8px 16px;
     }
   </style>
 </head>
@@ -100,16 +85,6 @@
       const smallBoard = document.createElement('div');
       smallBoard.classList.add('smallBoard');
       smallBoard.dataset.index = b;
-
-      for (let c = 0; c < 9; c++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.dataset.board = b;
-        cell.dataset.cell = c;
-        cell.addEventListener('click', () => jugar(b, c));
-        smallBoard.appendChild(cell);
-      }
-
       bigBoard.appendChild(smallBoard);
     }
   }
@@ -117,8 +92,9 @@
   function revisarGanadorTablero(tablero) {
     for (const combo of combosGanadores) {
       const [a, b, c] = combo;
-      if (tablero[a] !== '-' && tablero[a] === tablero[b] && tablero[a] === tablero[c]) {
-        return tablero[a];
+      const val = tablero[a];
+      if (val !== '-' && val === tablero[b] && val === tablero[c]) {
+        return val;
       }
     }
     return '-';
@@ -127,7 +103,12 @@
   function revisarGanadorGrande() {
     for (const combo of combosGanadores) {
       const [a, b, c] = combo;
-      if (ganadoresTableros[a] !== '-' && ganadoresTableros[a] === ganadoresTableros[b] && ganadoresTableros[a] === ganadoresTableros[c]) {
+      if (
+        ganadoresTableros[a] !== '-' &&
+        ganadoresTableros[a] !== 'E' &&
+        ganadoresTableros[a] === ganadoresTableros[b] &&
+        ganadoresTableros[a] === ganadoresTableros[c]
+      ) {
         return ganadoresTableros[a];
       }
     }
@@ -157,14 +138,21 @@
           cell.dataset.board = idx;
           cell.dataset.cell = i;
           cell.textContent = tableros[idx][i] === '-' ? '' : tableros[idx][i];
-          if (juegoTerminado || (bloqueActivo !== -1 && bloqueActivo !== idx) || tableros[idx][i] !== '-') {
+
+          if (
+            juegoTerminado ||
+            (bloqueActivo !== -1 && bloqueActivo !== idx) ||
+            tableros[idx][i] !== '-'
+          ) {
             cell.style.pointerEvents = 'none';
           } else {
             cell.style.pointerEvents = 'auto';
           }
+
           cell.addEventListener('click', () => jugar(idx, i));
           sb.appendChild(cell);
         }
+
         if (!juegoTerminado && (bloqueActivo === -1 || bloqueActivo === idx)) {
           sb.classList.add('active');
         }
@@ -189,7 +177,7 @@
 
     let ganadorGrande = revisarGanadorGrande();
     if (ganadorGrande !== '-') {
-      status.textContent = `¡GANA ${ganadorGrande}! 🖕🏿`;
+      status.textContent = `¡GANA ${ganadorGrande}! 🎉`;
       juegoTerminado = true;
       bloqueActivo = -1;
     } else {
