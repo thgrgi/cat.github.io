@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gato^3</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    #bigBoard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 600px;
+      margin: 0 auto 20px;
+    }
+    .smallBoard {
+      border: 2px solid black;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      background-color: #eee;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .cell {
+      background-color: white;
+      border: 1px solid #aaa;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .smallBoard.won {
+      background-color: #333;
+      position: relative;
+    }
+    .winnerMark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 4rem;
+      font-weight: bold;
+      color: #ccc; /* Gris claro */
+      pointer-events: none;
+    }
+    .smallBoard.active {
+      outline: 4px solid #999;
+      box-shadow: 0 0 10px 4px rgba(150, 150, 150, 0.6);
+      background-color: #ddd;
+    }
+    #status {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+    }
+    button {
+      font-size: 1rem;
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Gato^3</h1>
+<div id="status">Turno de: X</div>
+<div id="bigBoard"></div>
+<button id="resetBtn">Reset</button>
+
+<script>
+  const bigBoard = document.getElementById('bigBoard');
+  const status = document.getElementById('status');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let turno = 'X';
+  let juegoTerminado = false;
+
+  let tableros = Array(9).fill(null).map(() => Array(9).fill('-'));
+  let ganadoresTableros = Array(9).fill('-');
+
+  const combosGanadores = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let bloqueActivo = -1;
+
+  function crearTablero() {
+    bigBoard.innerHTML = '';
+    for (let b = 0; b < 9; b++) {
+      const smallBoard = document.createElement('div');
+      smallBoard.classList.add('smallBoard');
+      smallBoard.dataset.index = b;
+
+      for (let c = 0; c < 9; c++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.board = b;
+        cell.dataset.cell = c;
+        cell.addEventListener('click', () => jugar(b, c));
+        smallBoard.appendChild(cell);
+      }
+
+      bigBoard.appendChild(smallBoard);
+    }
+  }
+
+  function revisarGanadorTablero(tablero) {
+    for (const combo of combosGanadores) {
+      const [a, b, c] = combo;
+      if (tablero[a] !== '-' && tablero[a] === tablero[b] && tablero[a] === tablero[c]) {
+        return tablero[a];
+      }
+    }
+    return '-';
+  }
+
+  function revisarGanadorGrande() {
+    for (const combo of combosGanadores) {
+      const [a, b, c] = combo;
+      if (ganadoresTableros[a] !== '-' && ganadoresTableros[a] === ganadoresTableros[b] && ganadoresTableros[a] === ganadoresTableros[c]) {
+        return ganadoresTableros[a];
+      }
+    }
+    return '-';
+  }
+
+  function estaLleno(tablero) {
+    return tablero.every(c => c !== '-');
+  }
+
+  function actualizarInterfaz() {
+    const smallBoards = document.querySelectorAll('.smallBoard');
+    smallBoards.forEach((sb, idx) => {
+      sb.classList.remove('won', 'active');
+      sb.innerHTML = '';
+
+      if (ganadoresTableros[idx] === 'X' || ganadoresTableros[idx] === 'O') {
+        sb.classList.add('won');
+        const mark = document.createElement('div');
+        mark.classList.add('winnerMark');
+        mark.textContent = ganadoresTableros[idx];
+        sb.appendChild(mark);
+      } else {
+        for (let i = 0; i < 9; i++) {
+          const cell = document.createElement('div');
+          cell.classList.add('cell');
+          cell.dataset.board = idx;
+          cell.dataset.cell = i;
+          cell.textContent = tableros[idx][i] === '-' ? '' : tableros[idx][i];
+          if (juegoTerminado || (bloqueActivo !== -1 && bloqueActivo !== idx) || tableros[idx][i] !== '-') {
+            cell.style.pointerEvents = 'none';
+          } else {
+            cell.style.pointerEvents = 'auto';
+          }
+          cell.addEventListener('click', () => jugar(idx, i));
+          sb.appendChild(cell);
+        }
+        if (!juegoTerminado && (bloqueActivo === -1 || bloqueActivo === idx)) {
+          sb.classList.add('active');
+        }
+      }
+    });
+  }
+
+  function jugar(boardIdx, cellIdx) {
+    if (juegoTerminado) return;
+    if (ganadoresTableros[boardIdx] !== '-') return;
+    if (tableros[boardIdx][cellIdx] !== '-') return;
+    if (bloqueActivo !== -1 && boardIdx !== bloqueActivo) return;
+
+    tableros[boardIdx][cellIdx] = turno;
+
+    let ganadorTab = revisarGanadorTablero(tableros[boardIdx]);
+    if (ganadorTab !== '-') {
+      ganadoresTableros[boardIdx] = ganadorTab;
+    } else if (estaLleno(tableros[boardIdx])) {
+      ganadoresTableros[boardIdx] = 'E';
+    }
+
+    let ganadorGrande = revisarGanadorGrande();
+    if (ganadorGrande !== '-') {
+      status.textContent = `¡GANA ${ganadorGrande}! 🖕🏿`;
+      juegoTerminado = true;
+      bloqueActivo = -1;
+    } else {
+      turno = turno === 'X' ? 'O' : 'X';
+      status.textContent = `Turno de: ${turno}`;
+      if (ganadoresTableros[cellIdx] === '-' && !estaLleno(tableros[cellIdx])) {
+        bloqueActivo = cellIdx;
+      } else {
+        bloqueActivo = -1;
+      }
+    }
+
+    actualizarInterfaz();
+  }
+
+  resetBtn.addEventListener('click', () => {
+    turno = 'X';
+    juegoTerminado = false;
+    tableros = Array(9).fill(null).map(() => Array(9).fill('-'));
+    ganadoresTableros = Array(9).fill('-');
+    bloqueActivo = -1;
+    status.textContent = `Turno de: ${turno}`;
+    crearTablero();
+    actualizarInterfaz();
+  });
+
+  crearTablero();
+  actualizarInterfaz();
+</script>
+
+</body>
+</html>
