@@ -4,20 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gato^3</title>
-  <style> /* Estilo del Game*/
+  <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      background-color: #e0e0e0;
+      background-color: #ffffff;
+      color: #000000;
     }
-    #bigBoard { /*tablero 9x*/
+    #bigBoard {
       display: grid;
       grid-template-columns: repeat(3, auto);
       gap: 10px;
       justify-content: center;
       margin: 20px auto;
     }
-    .smallBoard { /*tablero 3x*/
+    .smallBoard {
       display: grid;
       grid-template-columns: repeat(3, 50px);
       grid-template-rows: repeat(3, 50px);
@@ -32,37 +33,44 @@
       font-size: 20px;
       cursor: pointer;
     }
-    .won { /*tablero ganado*/
+    .won {
       background-color: #eef;
       pointer-events: none;
     }
     .active {
       border: 3px solid #007bff;
     }
-    .winnerMark { /*ganador del tablero*/
+    .winnerMark {
       position: absolute;
       font-size: 60px;
-      color: #555;
+      color: rgba(0, 0, 0, 0.3);
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      opacity: 0.3;
     }
-    button { /*reset*/
+    button {
       margin-top: 10px;
       padding: 8px 16px;
+      background-color: #f0f0f0;
+      color: #000000;
+      border: 1px solid #999;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #ddd;
     }
     .cell.x {
-  color: #800000; 
-  font-weight: bold;
-}
-
-.cell.o {
-  color: #000000;
-  font-weight: bold;
-}
+      color: #800000;
+      font-weight: bold;
+    }
+    .cell.o {
+      color: #000000;
+      font-weight: bold;
+    }
+    .highlight {
+      background-color: rgba(255, 255, 0, 0.3);
+    }
   </style>
-  
 </head>
 <body> 
 <h1>Gato^3</h1>  
@@ -70,11 +78,9 @@
 <div id="bigBoard"></div>
 <button id="resetBtn">Reset</button>
 <footer style="margin-top: 30px; font-size: 14px; color: #333; text-align: center;">
- by <strong>Montenegro</strong>
 </footer>
 
-
-<script>   /*función del juego*/
+<script>
   const bigBoard = document.getElementById('bigBoard');
   const status = document.getElementById('status');
   const resetBtn = document.getElementById('resetBtn');
@@ -82,7 +88,11 @@
   let turno = 'X';
   let juegoTerminado = false;
 
-  let tableros = Array(9).fill(null).map(() => Array(9).fill('-'));
+  let tableros = Array(9).fill(null).map(() => {
+    let t = Array(9).fill('-');
+    t.comboGanador = null;
+    return t;
+  });
   let ganadoresTableros = Array(9).fill('-');
 
   const combosGanadores = [
@@ -102,18 +112,18 @@
       bigBoard.appendChild(smallBoard);
     }
   }
-/*revision 3x*/
+
   function revisarGanadorTablero(tablero) {
     for (const combo of combosGanadores) {
       const [a, b, c] = combo;
       const val = tablero[a];
       if (val !== '-' && val === tablero[b] && val === tablero[c]) {
-        return val;
+        return { ganador: val, combo };
       }
     }
-    return '-';
+    return { ganador: '-', combo: [] };
   }
-/*revision 9x*/
+
   function revisarGanadorGrande() {
     for (const combo of combosGanadores) {
       const [a, b, c] = combo;
@@ -144,6 +154,7 @@
         const mark = document.createElement('div');
         mark.classList.add('winnerMark');
         mark.textContent = ganadoresTableros[idx];
+        mark.style.color = ganadoresTableros[idx] === 'X' ? '#800000' : '#000000';
         sb.appendChild(mark);
       } else {
         for (let i = 0; i < 9; i++) {
@@ -152,10 +163,11 @@
           cell.dataset.board = idx;
           cell.dataset.cell = i;
           cell.textContent = tableros[idx][i] === '-' ? '' : tableros[idx][i];
-          //color de x y o
-        if (tableros[idx][i] === 'X') cell.style.color = '#800000'; 
-        if (tableros[idx][i] === 'O') cell.style.color = '#000000'; 
-
+          if (tableros[idx][i] === 'X') cell.classList.add('x');
+          if (tableros[idx][i] === 'O') cell.classList.add('o');
+          if (tableros[idx].comboGanador && tableros[idx].comboGanador.includes(i)) {
+            cell.classList.add('highlight');
+          }
 
           if (
             juegoTerminado ||
@@ -186,16 +198,17 @@
 
     tableros[boardIdx][cellIdx] = turno;
 
-    let ganadorTab = revisarGanadorTablero(tableros[boardIdx]);
-    if (ganadorTab !== '-') {
-      ganadoresTableros[boardIdx] = ganadorTab;
+    let resultado = revisarGanadorTablero(tableros[boardIdx]);
+    if (resultado.ganador !== '-') {
+      ganadoresTableros[boardIdx] = resultado.ganador;
+      tableros[boardIdx].comboGanador = resultado.combo;
     } else if (estaLleno(tableros[boardIdx])) {
       ganadoresTableros[boardIdx] = 'E';
     }
 
     let ganadorGrande = revisarGanadorGrande();
     if (ganadorGrande !== '-') {
-      status.textContent = `¡GANA ${ganadorGrande}! 💋​`;
+      status.textContent = `¡GANA ${ganadorGrande}!`;
       juegoTerminado = true;
       bloqueActivo = -1;
     } else {
@@ -210,21 +223,24 @@
 
     actualizarInterfaz();
   }
-//reset
+
   resetBtn.addEventListener('click', () => {
     turno = 'X';
     juegoTerminado = false;
-    tableros = Array(9).fill(null).map(() => Array(9).fill('-'));
+    tableros = Array(9).fill(null).map(() => {
+      let t = Array(9).fill('-');
+      t.comboGanador = null;
+      return t;
+    });
     ganadoresTableros = Array(9).fill('-');
     bloqueActivo = -1;
     status.textContent = `Turno de: ${turno}`;
     crearTablero();
     actualizarInterfaz();
   });
-//inicio
+
   crearTablero();
   actualizarInterfaz();
 </script>
-
 </body>
 </html>
