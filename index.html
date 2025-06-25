@@ -48,17 +48,6 @@
       left: 50%;
       transform: translate(-50%, -50%);
     }
-    button {
-      margin-top: 10px;
-      padding: 8px 16px;
-      background-color: #f0f0f0;
-      color: #000000;
-      border: 1px solid #999;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #ddd;
-    }
     .cell.x {
       color: #800000;
       font-weight: bold;
@@ -70,20 +59,59 @@
     .highlight {
       background-color: rgba(255, 255, 0, 0.3);
     }
+    #gameOverOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Arial Black', sans-serif;
+      z-index: 9999;
+      display: none;
+    }
+    #gameOverOverlay span {
+      font-size: 60px;
+      margin-bottom: 10px;
+    }
+    #winnerText {
+      font-size: 32px;
+      margin-bottom: 30px;
+    }
+    #yesReset {
+      font-size: 16px;
+      padding: 6px 14px;
+      background-color: #ccc;
+      border: none;
+      cursor: pointer;
+    }
+    #yesReset:hover {
+      background-color: #aaa;
+    }
   </style>
 </head>
 <body> 
 <h1>Cathree</h1>  
-<div id="status" style="font-size: 24px" ; >Turno de: X</div>
+<div id="status" style="font-size: 24px;"></div>
 <div id="bigBoard"></div>
-<button id="resetBtn">Reset</button>
-<footer style="margin-top: 30px; font-size: 14px; color: #333; text-align: center;">
-</footer>
+<div id="gameOverOverlay">
+  <span>Game Over</span>
+  <div id="winnerText"></div>
+  <button id="yesReset">Reset</button>
+</div>
+<footer style="margin-top: 30px; font-size: 14px; color: #333; text-align: center;"></footer>
 
 <script>
   const bigBoard = document.getElementById('bigBoard');
   const status = document.getElementById('status');
-  const resetBtn = document.getElementById('resetBtn');
+  const overlay = document.getElementById('gameOverOverlay');
+  const winnerText = document.getElementById('winnerText');
+  const yesReset = document.getElementById('yesReset');
 
   let turno = 'X';
   let juegoTerminado = false;
@@ -208,9 +236,11 @@
 
     let ganadorGrande = revisarGanadorGrande();
     if (ganadorGrande !== '-') {
-      status.textContent = `¡GANA ${ganadorGrande}!`;
+      status.textContent = '';
       juegoTerminado = true;
       bloqueActivo = -1;
+      overlay.style.display = 'flex';
+      winnerText.innerHTML = `¡Winner <strong>${ganadorGrande}</strong>!`;
     } else {
       turno = turno === 'X' ? 'O' : 'X';
       status.textContent = `Turno de: ${turno}`;
@@ -224,7 +254,7 @@
     actualizarInterfaz();
   }
 
-  resetBtn.addEventListener('click', () => {
+  function resetearJuego() {
     turno = 'X';
     juegoTerminado = false;
     tableros = Array(9).fill(null).map(() => {
@@ -235,9 +265,12 @@
     ganadoresTableros = Array(9).fill('-');
     bloqueActivo = -1;
     status.textContent = `Turno de: ${turno}`;
+    overlay.style.display = 'none';
     crearTablero();
     actualizarInterfaz();
-  });
+  }
+
+  yesReset.addEventListener('click', resetearJuego);
 
   crearTablero();
   actualizarInterfaz();
